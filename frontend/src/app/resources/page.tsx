@@ -88,6 +88,37 @@ export default function ResourcesPage() {
 
   useEffect(() => {
     loadResources();
+
+    // Check for Web Share Target parameters (shared from Instagram, Twitter, Chrome, etc.)
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const sharedUrl = params.get('url') || '';
+      const sharedText = params.get('text') || '';
+      const sharedTitle = params.get('title') || '';
+
+      let targetUrl = '';
+      if (sharedUrl.startsWith('http://') || sharedUrl.startsWith('https://')) {
+        targetUrl = sharedUrl.trim();
+      } else {
+        const combined = `${sharedUrl} ${sharedText}`;
+        const match = combined.match(/https?:\/\/[^\s]+/i);
+        if (match) {
+          targetUrl = match[0].trim();
+        }
+      }
+
+      if (targetUrl) {
+        setShowForm(true);
+        setForm(prev => ({
+          ...prev,
+          url: targetUrl,
+          tags: sharedTitle ? 'shared' : '',
+        }));
+        fetchPreview(targetUrl);
+        // Clean query string from browser bar without page reload
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
   }, []);
 
   const fetchPreview = async (url: string) => {

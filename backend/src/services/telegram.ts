@@ -4,6 +4,8 @@ import ApiKey from '../models/ApiKey';
 import Task from '../models/Task';
 import Note from '../models/Note';
 import Habit from '../models/Habit';
+import Resource from '../models/Resource';
+import { fetchUrlMetadata } from './metadata';
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
@@ -49,6 +51,7 @@ async function handleTelegramMessage(message: any) {
           `*Comandos disponibles:*\n` +
           `• \`/task <título>\` - Crear tarea rápida\n` +
           `• \`/note <contenido>\` - Guardar nota / snippet\n` +
+          `• \`/tool <enlace>\` - Guardar herramienta / recurso\n` +
           `• \`/pasos <número>\` - Registrar pasos de hoy\n` +
           `• \`/summary\` - Resumen del día`
         );
@@ -214,6 +217,52 @@ async function handleTelegramMessage(message: any) {
 
     await sendTelegramMessage(chatId, response);
     return;
+  }
+
+  // 6. Command: /tool, /link, /recurso or direct shared URL
+  if (text.startsWith('/tool ') || text.startsWith('/link ') || text.startsWith('/recurso ') || /^https?:\/\//i.test(text)) {
+    const rawUrl = text.replace(/^\/(tool|link|recurso)\s+/, '').trim();
+    const urlMatch = rawUrl.match(/https?:\/\/[^\s]+/i);
+    const targetUrl = urlMatch ? urlMatch[0] : rawUrl;
+
+    if (targetUrl.startsWith('http://') || targetUrl.startsWith('https://')) {
+      await sendTelegramMessage(chatId, `⏳ *Obteniendo información del enlace...*`);
+      try {
+        const meta = await fetchUrlMetadata(targetUrl);
+        const resource = (await Resource.create({
+          userId: user._id,
+          url: targetUrl,
+          title: meta.title || targetUrl,
+          description: meta.description || '',
+          image: meta.image || '',
+          favicon: meta.favicon || '',
+          siteName: meta.siteName || '',
+          author: meta.author || '',
+          category: 'other',
+          tags: ['telegram', 'shared'],
+          reviewed: false,
+        })) as any;
+
+        await sendTelegramMessage(
+          chatId,
+          `🔖 *Herramienta guardada en Kanso Hub:*\n\n` +
+          `📌 *${resource.title}*\n` +
+          (meta.description ? `_${meta.description.slice(0, 140)}..._\n\n` : '\n') +
+          `🌐 ${targetUrl}`
+        );
+        return;
+      } catch (err: any) {
+        const resource = (await Resource.create({
+          userId: user._id,
+          url: targetUrl,
+          title: targetUrl,
+          category: 'other',
+          tags: ['telegram', 'shared'],
+        })) as any;
+        await sendTelegramMessage(chatId, `🔖 *Herramienta guardada:* ${targetUrl}`);
+        return;
+      }
+    }
   }
 
   // Fallback: If regular text, save as quick task
