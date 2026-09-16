@@ -10,7 +10,6 @@ const apiKeySchema = new mongoose.Schema({
   expiresAt: { type: Date, default: null },
 }, { timestamps: true });
 
-apiKeySchema.index({ keyHash: 1 });
 apiKeySchema.index({ userId: 1, createdAt: -1 });
 
 export default mongoose.model('ApiKey', apiKeySchema);

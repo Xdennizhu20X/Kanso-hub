@@ -27,7 +27,21 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI || process.env.MONGO_URL || process.env.MONGODB_URL || 'mongodb://localhost:27017/kanso';
 
-app.use(cors());
+const rawCors = process.env.CORS_ORIGIN || '*';
+const corsOrigins = rawCors.split(',').map(o => o.trim().replace(/\/+$/, ''));
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || corsOrigins.includes('*')) return callback(null, true);
+    const cleanOrigin = origin.replace(/\/+$/, '');
+    if (corsOrigins.includes(cleanOrigin)) return callback(null, true);
+    if (/^https?:\/\/localhost(:\d+)?$/.test(cleanOrigin) || /^https?:\/\/127\.0\.0\.1(:\d+)?$/.test(cleanOrigin)) {
+      return callback(null, true);
+    }
+    return callback(null, false);
+  },
+  credentials: true,
+}));
 
 app.use(express.json({ limit: '10mb' }));
 
