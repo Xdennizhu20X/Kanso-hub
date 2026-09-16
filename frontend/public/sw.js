@@ -1,5 +1,5 @@
-// LifeOS Lightweight Service Worker
-const CACHE_NAME = 'lifeos-cache-v1';
+// Kanso Hub Lightweight Service Worker
+const CACHE_NAME = 'kanso-hub-cache-v1';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -27,14 +27,25 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass through non-GET and API requests directly to the network
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) {
+  // Only handle http/https GET requests
+  if (event.request.method !== 'GET' || !event.request.url.startsWith('http')) {
+    return;
+  }
+
+  // Bypass API requests directly to network
+  if (event.request.url.includes('/api/')) {
     return;
   }
 
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return new Response('Offline', {
+        status: 503,
+        statusText: 'Service Unavailable',
+        headers: { 'Content-Type': 'text/plain' },
+      });
     })
   );
 });
