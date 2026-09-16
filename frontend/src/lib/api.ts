@@ -1,4 +1,12 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+function normalizeApiUrl(raw?: string): string {
+  let url = (raw || 'http://localhost:5000').trim().replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(url)) {
+    url = `https://${url}`;
+  }
+  return url;
+}
+
+export const API_URL = normalizeApiUrl(process.env.NEXT_PUBLIC_API_URL);
 
 class ApiClient {
   private token: string | null = null;
@@ -6,8 +14,10 @@ class ApiClient {
   setToken(token: string | null) {
     this.token = token;
     if (token) {
+      localStorage.setItem('kanso_token', token);
       localStorage.setItem('lifeos_token', token);
     } else {
+      localStorage.removeItem('kanso_token');
       localStorage.removeItem('lifeos_token');
     }
   }
@@ -15,7 +25,7 @@ class ApiClient {
   getToken(): string | null {
     if (this.token) return this.token;
     if (typeof window !== 'undefined') {
-      this.token = localStorage.getItem('lifeos_token');
+      this.token = localStorage.getItem('kanso_token') || localStorage.getItem('lifeos_token');
     }
     return this.token;
   }
@@ -28,7 +38,8 @@ class ApiClient {
       ...options.headers,
     };
 
-    const res = await fetch(`${API_URL}${endpoint}`, {
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    const res = await fetch(`${API_URL}${cleanEndpoint}`, {
       ...options,
       headers,
     });
