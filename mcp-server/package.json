@@ -1,0 +1,22 @@
+{
+  "name": "kanso-hub-mcp-server",
+  "version": "1.0.0",
+  "description": "Servidor MCP oficial para Kanso Hub - Conecta agentes de IA (Antigravity, Claude Code, Cursor) con tus tareas, notas, hábitos y proyectos",
+  "main": "dist/index.js",
+  "bin": {
+    "kanso-mcp": "dist/index.js",
+    "lifeos-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}
